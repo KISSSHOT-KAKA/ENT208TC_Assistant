@@ -220,6 +220,23 @@ sudo chmod 666 /dev/ttyACM0
 
 这样不依赖理解云端私有协议，也能快速做出演示级联动。
 
+## 10.3 事件协议 v1（P0 固化）
+
+目的：
+- 统一 Ubuntu 串口日志到 Windows 桌宠的事件格式，避免前后端联调反复改字段。
+
+统一消息结构：
+~~~json
+{
+  "version": "v1",
+  "event": "state_changed",
+  "ts": "2026-04-22T12:00:00Z",
+  "seq": 1,
+  "source": "serial_bridge",
+  "payload": {},
+  "raw": "I (10809) Application: STATE: idle"
+}
+
 ---
 
 ## 11. 前端（桌宠/屏显）优化建议
