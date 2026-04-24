@@ -1,0 +1,269 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ENT208TC Pet UI</title>
+  <style>
+    :root {
+      --bg1: #0b1220;
+      --bg2: #12213d;
+      --card: rgba(10, 20, 40, 0.65);
+      --line: rgba(148, 163, 184, 0.25);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --user: #1d4ed8;
+      --assistant: #0f766e;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100vh;
+      color: var(--text);
+      background: radial-gradient(1200px 700px at 20% 0%, #1a2f57 0%, transparent 55%),
+                  linear-gradient(135deg, var(--bg1), var(--bg2));
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      display: grid;
+      place-items: center;
+    }
+
+    .app {
+      width: min(980px, 94vw);
+      height: min(680px, 92vh);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--card);
+      backdrop-filter: blur(6px);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      overflow: hidden;
+    }
+
+    .topbar {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      margin-right: 8px;
+    }
+
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .row {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input {
+      flex: 1;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: rgba(15, 23, 42, 0.7);
+      color: var(--text);
+      padding: 0 10px;
+      outline: none;
+    }
+
+    button {
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #1e293b;
+      color: var(--text);
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    .log {
+      padding: 14px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      line-height: 1.4;
+      border: 1px solid var(--line);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: color-mix(in oklab, var(--user) 35%, transparent);
+    }
+
+    .assistant {
+      align-self: flex-start;
+      background: color-mix(in oklab, var(--assistant) 35%, transparent);
+    }
+
+    .system {
+      align-self: center;
+      background: rgba(2, 6, 23, 0.7);
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="title">小闪桌宠联动面板</div>
+      <div id="conn" class="pill">连接中</div>
+      <div id="state" class="pill">状态: unknown</div>
+    </div>
+
+    <div class="row">
+      <input id="wsUrl" />
+      <button id="saveBtn">保存并重连</button>
+    </div>
+
+    <div id="log" class="log"></div>
+  </div>
+
+  <script>
+    const DEFAULT_WS = "ws://192.168.133.140:8766";
+    const wsUrlInput = document.getElementById("wsUrl");
+    const saveBtn = document.getElementById("saveBtn");
+    const connEl = document.getElementById("conn");
+    const stateEl = document.getElementById("state");
+    const logEl = document.getElementById("log");
+
+    let ws = null;
+    let retryMs = 1500;
+    let retryTimer = null;
+
+    function getUrl() {
+      return localStorage.getItem("ENT_WS_URL") || DEFAULT_WS;
+    }
+
+    function setConn(text, ok) {
+      connEl.textContent = text;
+      connEl.style.color = ok ? "#22c55e" : "#f59e0b";
+    }
+
+    function setState(s) {
+      stateEl.textContent = "状态: " + s;
+    }
+
+    function addBubble(text, cls) {
+      const div = document.createElement("div");
+      div.className = "bubble " + cls;
+      div.textContent = text;
+      logEl.appendChild(div);
+
+      while (logEl.children.length > 40) {
+        logEl.removeChild(logEl.firstChild);
+      }
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function scheduleReconnect() {
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(connect, retryMs);
+      retryMs = Math.min(Math.floor(retryMs * 1.5), 10000);
+    }
+
+    function connect() {
+      const url = getUrl();
+      wsUrlInput.value = url;
+
+      if (ws) {
+        try { ws.close(); } catch (_) {}
+      }
+
+      setConn("重连中", false);
+      addBubble("正在连接: " + url, "system");
+
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        retryMs = 1500;
+        setConn("已连接", true);
+        addBubble("连接成功", "system");
+      };
+
+      ws.onclose = () => {
+        setConn("已断开", false);
+        addBubble("连接断开，自动重连...", "system");
+        scheduleReconnect();
+      };
+
+      ws.onerror = (e) => {
+        setConn("连接错误", false);
+      };
+
+      ws.onmessage = (evt) => {
+        let data = null;
+        try {
+          data = JSON.parse(evt.data);
+        } catch (_) {
+          return;
+        }
+
+        const event = data.event;
+        const payload = data.payload || {};
+
+        if (event === "state_changed") {
+          setState(payload.state || "unknown");
+          return;
+        }
+
+        if (event === "user_text") {
+          addBubble("你: " + (payload.text || ""), "user");
+          return;
+        }
+
+        if (event === "assistant_text") {
+          addBubble("小闪: " + (payload.text || ""), "assistant");
+          return;
+        }
+
+        if (event === "wake_detected") {
+          addBubble("检测到唤醒词: " + (payload.keyword || ""), "system");
+          return;
+        }
+
+        if (event === "network_error") {
+          addBubble("网络异常: " + (payload.detail || payload.code || "unknown"), "system");
+        }
+      };
+    }
+
+    saveBtn.onclick = () => {
+      const v = wsUrlInput.value.trim();
+      if (!v) return;
+      localStorage.setItem("ENT_WS_URL", v);
+      retryMs = 1500;
+      connect();
+    };
+
+    setState("unknown");
+    connect();
+  </script>
+</body>
+</html>

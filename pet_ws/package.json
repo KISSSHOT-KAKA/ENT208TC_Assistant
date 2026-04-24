@@ -1,0 +1,17 @@
+{
+  "name": "ent208tc_pet_ws",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "demo": "set WS_URL=ws://192.168.133.140:8766&&node ws_client.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "ws": "^8.20.0"
+  }
+}
