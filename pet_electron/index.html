@@ -43,16 +43,48 @@
     }
 
     .stage {
-      padding: 10px 16px 0;
+      padding: 10px 16px;
       border-bottom: 1px solid var(--line);
-      min-height: 98px;
+      min-height: 300px;
       display: grid;
-      place-items: center;
+      grid-template-columns: 1fr 240px;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .live2d-wrap {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: radial-gradient(380px 220px at 50% 30%, rgba(59, 130, 246, 0.15), rgba(2, 6, 23, 0.72));
+      position: relative;
+      overflow: hidden;
+      min-height: 260px;
+    }
+
+    .live2d-wrap canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+
+    .live2d-tip {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(2, 6, 23, 0.55);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 9px;
+      z-index: 2;
+      pointer-events: none;
     }
 
     .pet {
-      width: 220px;
-      height: 78px;
+      width: 100%;
+      height: 100%;
+      min-height: 110px;
       border: 1px solid var(--line);
       border-radius: 14px;
       background: rgba(2, 6, 23, 0.5);
@@ -61,6 +93,12 @@
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
+    }
+
+    @media (max-width: 840px) {
+      .stage {
+        grid-template-columns: 1fr;
+      }
     }
 
     .pet-core {
@@ -232,6 +270,9 @@
     </div>
 
     <div class="stage">
+      <div id="live2dWrap" class="live2d-wrap">
+        <div id="live2dTip" class="live2d-tip">模型加载中...</div>
+      </div>
       <div class="pet">
         <div class="pet-core"></div>
         <div>
@@ -244,9 +285,15 @@
     <div id="log" class="log"></div>
   </div>
 
+  <script src="./node_modules/pixi.js/dist/browser/pixi.min.js"></script>
+  <script src="./node_modules/pixi-live2d-display/dist/cubism4.min.js"></script>
+
   <script>
     const DEFAULT_WS = "ws://192.168.133.140:8770";
+    const LIVE2D_MODEL = "./models/Hiyori/Hiyori.model3.json";
     const appEl = document.getElementById("app");
+    const live2dWrap = document.getElementById("live2dWrap");
+    const live2dTip = document.getElementById("live2dTip");
     const wsUrlInput = document.getElementById("wsUrl");
     const saveBtn = document.getElementById("saveBtn");
     const connEl = document.getElementById("conn");
@@ -257,6 +304,8 @@
     let ws = null;
     let retryMs = 1500;
     let retryTimer = null;
+    let live2dModel = null;
+    let currentState = "unknown";
 
     function getUrl() {
       return localStorage.getItem("ENT_WS_URL") || DEFAULT_WS;
@@ -265,6 +314,71 @@
     function setConn(text, ok) {
       connEl.textContent = text;
       connEl.style.color = ok ? "#22c55e" : "#f59e0b";
+    }
+
+    function setLive2DTip(text) {
+      live2dTip.textContent = text;
+    }
+
+    function playStateMotion(state) {
+      if (!live2dModel || typeof live2dModel.motion !== "function") {
+        return;
+      }
+
+      const motionMap = {
+        idle: "Idle",
+        listening: "TapBody",
+        thinking: "FlickHead",
+        speaking: "TapBody",
+        unknown: "Idle"
+      };
+
+      const group = motionMap[state] || "Idle";
+      try {
+        live2dModel.motion(group);
+      } catch (_) {
+        // Motion group names vary by model; ignore if unavailable.
+      }
+    }
+
+    async function initLive2D() {
+      if (!window.PIXI || !window.PIXI.live2d || !window.PIXI.live2d.Live2DModel) {
+        setLive2DTip("Live2D库未加载");
+        addBubble("Live2D库未加载，请先执行 npm install。", "system");
+        return;
+      }
+
+      try {
+        const pixiApp = new window.PIXI.Application({
+          resizeTo: live2dWrap,
+          autoStart: true,
+          antialias: true,
+          backgroundAlpha: 0
+        });
+        live2dWrap.appendChild(pixiApp.view);
+
+        live2dModel = await window.PIXI.live2d.Live2DModel.from(LIVE2D_MODEL);
+        live2dModel.anchor.set(0.5, 1);
+        pixiApp.stage.addChild(live2dModel);
+
+        const fitModel = () => {
+          const w = live2dWrap.clientWidth;
+          const h = live2dWrap.clientHeight;
+          live2dModel.x = w * 0.5;
+          live2dModel.y = h * 0.98;
+          const scale = Math.min(w / 650, h / 930);
+          live2dModel.scale.set(scale * 1.35);
+        };
+
+        fitModel();
+        window.addEventListener("resize", fitModel);
+        setLive2DTip("模型: Hiyori");
+        playStateMotion(currentState);
+        addBubble("Live2D模型加载成功", "system");
+      } catch (err) {
+        setLive2DTip("模型加载失败");
+        addBubble("Live2D模型加载失败: " + err.message, "system");
+      }
     }
 
     function normalizeState(s) {
@@ -278,9 +392,11 @@
 
     function setState(s) {
       const n = normalizeState(s);
+      currentState = n;
       stateEl.textContent = "状态: " + n;
       petStateEl.textContent = n.toUpperCase();
       appEl.dataset.state = n;
+      playStateMotion(n);
     }
 
     function addBubble(text, cls) {
@@ -385,6 +501,7 @@
     };
 
     setState("unknown");
+    initLive2D();
     connect();
   </script>
 </body>
