@@ -355,3 +355,65 @@ P2（后续）
 本项目目前已经从“环境搭建/烧录验证”进入“产品体验/联动开发”阶段。
 
 建议后续优先把“桌宠联动”做成可演示闭环，再逐步推进后端自定义与成本优化。
+
+---
+
+## 18. 当前仓库代码结构（2026-04）
+
+- `bridge/`：Ubuntu 侧串口解析与 WebSocket 事件桥
+  - `parser_v1.py`：日志行 -> 事件协议 v1
+  - `ws_bridge_v1.py`：串口读取 + WS 广播
+  - `start_bridge.sh`：前台守护启动
+  - `start_bridge_bg.sh`：后台一键启动
+  - `requirements.txt`：桥接依赖
+- `pet_electron/`：Windows 桌宠 UI（Electron）
+  - `index.html`：连接管理 + 四态可视化 + 气泡
+  - `main.js`：Electron 窗口入口
+- `pet_ws/`：最小化 Node ws 调试客户端
+
+## 19. 最短启动手册（联调）
+
+### 19.1 Ubuntu（桥服务）
+
+```bash
+cd ~/ent208tc_bridge
+sudo chmod 666 /dev/ttyACM0
+./start_bridge_bg.sh
+tail -n 60 bridge.log
+```
+
+判定成功标准：
+- 日志出现 `websocket listening: ws://0.0.0.0:8770`
+- 日志出现 `open serial: /dev/ttyACM0 @ 115200`
+
+### 19.2 Windows（桌宠 UI）
+
+```powershell
+cd "E:\Data Science and Big Data Technology\Stage2\Semester2\ENT208TC\ent208tc_pet_electron"
+npm start
+```
+
+UI 中确认 WebSocket 地址为：
+- `ws://192.168.133.140:8770`
+
+## 20. 常见故障速查
+
+1) 现象：`/dev/ttyACM0: No such file or directory`
+- 处理：在 VMware 中重新连接 USB 设备，再执行 `ls /dev/ttyACM*`
+
+2) 现象：`OSError [Errno 98] address already in use`
+- 处理：清理端口后重启
+```bash
+pid=$(lsof -tiTCP:8770 -sTCP:LISTEN || true)
+[ -n "$pid" ] && kill -9 $pid
+./start_bridge_bg.sh
+```
+
+3) 现象：Windows 一直重连
+- 处理：先确认网络端口连通，再看桥日志
+```powershell
+Test-NetConnection 192.168.133.140 -Port 8770
+```
+```bash
+tail -n 80 ~/ent208tc_bridge/bridge.log
+```

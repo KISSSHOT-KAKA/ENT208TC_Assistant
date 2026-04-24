@@ -42,6 +42,95 @@
       overflow: hidden;
     }
 
+    .stage {
+      padding: 10px 16px 0;
+      border-bottom: 1px solid var(--line);
+      min-height: 98px;
+      display: grid;
+      place-items: center;
+    }
+
+    .pet {
+      width: 220px;
+      height: 78px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(2, 6, 23, 0.5);
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+    }
+
+    .pet-core {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      background: #64748b;
+      box-shadow: 0 0 0 0 rgba(148, 163, 184, 0.4);
+    }
+
+    .pet-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .pet-state {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .app[data-state="idle"] .pet-core {
+      background: #22c55e;
+      animation: idlePulse 2.2s ease-in-out infinite;
+    }
+
+    .app[data-state="listening"] .pet-core {
+      background: #38bdf8;
+      animation: listenPulse 1s ease-in-out infinite;
+    }
+
+    .app[data-state="thinking"] .pet-core {
+      background: #f59e0b;
+      animation: thinkPulse 0.8s linear infinite;
+    }
+
+    .app[data-state="speaking"] .pet-core {
+      background: #a78bfa;
+      animation: speakPulse 0.45s ease-in-out infinite alternate;
+    }
+
+    .app[data-state="unknown"] .pet-core {
+      background: #64748b;
+      animation: none;
+    }
+
+    @keyframes idlePulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.2); }
+      50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+    }
+
+    @keyframes listenPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.35); }
+      50% { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(56, 189, 248, 0); }
+    }
+
+    @keyframes thinkPulse {
+      0% { transform: translateX(0) scale(1); }
+      25% { transform: translateX(2px) scale(0.95); }
+      50% { transform: translateX(0) scale(1); }
+      75% { transform: translateX(-2px) scale(0.95); }
+      100% { transform: translateX(0) scale(1); }
+    }
+
+    @keyframes speakPulse {
+      from { transform: scale(0.92); }
+      to { transform: scale(1.08); }
+    }
+
     .topbar {
       padding: 14px 16px;
       border-bottom: 1px solid var(--line);
@@ -130,7 +219,7 @@
   </style>
 </head>
 <body>
-  <div class="app">
+  <div id="app" class="app" data-state="unknown">
     <div class="topbar">
       <div class="title">小闪桌宠联动面板</div>
       <div id="conn" class="pill">连接中</div>
@@ -142,15 +231,27 @@
       <button id="saveBtn">保存并重连</button>
     </div>
 
+    <div class="stage">
+      <div class="pet">
+        <div class="pet-core"></div>
+        <div>
+          <div class="pet-title">桌宠动作</div>
+          <div id="petState" class="pet-state">Unknown</div>
+        </div>
+      </div>
+    </div>
+
     <div id="log" class="log"></div>
   </div>
 
   <script>
-    const DEFAULT_WS = "ws://192.168.133.140:8766";
+    const DEFAULT_WS = "ws://192.168.133.140:8770";
+    const appEl = document.getElementById("app");
     const wsUrlInput = document.getElementById("wsUrl");
     const saveBtn = document.getElementById("saveBtn");
     const connEl = document.getElementById("conn");
     const stateEl = document.getElementById("state");
+    const petStateEl = document.getElementById("petState");
     const logEl = document.getElementById("log");
 
     let ws = null;
@@ -166,8 +267,20 @@
       connEl.style.color = ok ? "#22c55e" : "#f59e0b";
     }
 
+    function normalizeState(s) {
+      const v = String(s || "unknown").toLowerCase();
+      if (v === "idle") return "idle";
+      if (v === "listening") return "listening";
+      if (v === "speaking") return "speaking";
+      if (v === "thinking" || v === "connecting" || v === "processing") return "thinking";
+      return "unknown";
+    }
+
     function setState(s) {
-      stateEl.textContent = "状态: " + s;
+      const n = normalizeState(s);
+      stateEl.textContent = "状态: " + n;
+      petStateEl.textContent = n.toUpperCase();
+      appEl.dataset.state = n;
     }
 
     function addBubble(text, cls) {
@@ -209,12 +322,14 @@
 
       ws.onclose = () => {
         setConn("已断开", false);
+        setState("connecting");
         addBubble("连接断开，自动重连...", "system");
         scheduleReconnect();
       };
 
       ws.onerror = (e) => {
         setConn("连接错误", false);
+        setState("connecting");
       };
 
       ws.onmessage = (evt) => {
@@ -234,23 +349,30 @@
         }
 
         if (event === "user_text") {
+          setState("thinking");
           addBubble("你: " + (payload.text || ""), "user");
           return;
         }
 
         if (event === "assistant_text") {
+          setState("speaking");
           addBubble("小闪: " + (payload.text || ""), "assistant");
           return;
         }
 
         if (event === "wake_detected") {
+          setState("listening");
           addBubble("检测到唤醒词: " + (payload.keyword || ""), "system");
           return;
         }
 
         if (event === "network_error") {
+          setState("connecting");
           addBubble("网络异常: " + (payload.detail || payload.code || "unknown"), "system");
+          return;
         }
+
+        addBubble("未处理事件: " + event, "system");
       };
     }
 
