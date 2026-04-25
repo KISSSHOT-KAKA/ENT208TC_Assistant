@@ -5,8 +5,8 @@ function createWindow() {
     width: 980,
     height: 680,
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true
+      nodeIntegration: true,
+      contextIsolation: false
     }
   });
   win.loadFile("index.html");
@@ -22,3 +22,5 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
+
+
