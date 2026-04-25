@@ -1,6 +1,6 @@
 ﻿const WebSocket = require("ws");
 
-const url = process.env.WS_URL || "ws://192.168.133.140:8765";
+const url = process.env.WS_URL || "ws://192.168.133.140:8770";
 let retryMs = 2000;
 
 function connect() {
