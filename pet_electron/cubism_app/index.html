@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ENT208TC Pet UI</title>
+  <style>
+    :root {
+      --eva-bg: #0b0608;
+      --eva-deep: #10090d;
+      --eva-panel: rgba(22, 10, 13, 0.92);
+      --eva-panel-soft: rgba(32, 15, 18, 0.78);
+      --eva-panel-strong: rgba(12, 4, 8, 0.96);
+      --eva-line: rgba(255, 152, 77, 0.22);
+      --eva-line-strong: rgba(255, 194, 97, 0.4);
+      --eva-red: #c4362d;
+      --eva-red-strong: #ff5c4d;
+      --eva-orange: #ff7b3a;
+      --eva-yellow: #ffd34f;
+      --eva-cream: #fff2dd;
+      --eva-mute: #c7b39b;
+      --eva-text: #fff7ef;
+      --eva-text-dim: #f1d2b4;
+      --eva-glow: rgba(255, 125, 58, 0.24);
+      --eva-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+      --chat-fixed: 220px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    body {
+      color: var(--eva-text);
+      background:
+        radial-gradient(1000px 560px at 0% 0%, rgba(255, 106, 67, 0.18), transparent 58%),
+        radial-gradient(980px 620px at 100% 0%, rgba(255, 200, 84, 0.08), transparent 50%),
+        linear-gradient(135deg, #17090e 0%, #090608 44%, #0d0910 100%);
+      font-family: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+      display: grid;
+      place-items: center;
+    }
+
+    .app {
+      width: min(1480px, 96vw);
+      height: min(920px, 95vh);
+      background:
+        linear-gradient(180deg, rgba(255, 126, 67, 0.06), transparent 22%),
+        linear-gradient(120deg, rgba(93, 18, 11, 0.56), rgba(7, 4, 6, 0.92));
+      border: 1px solid var(--eva-line);
+      border-radius: 28px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      box-shadow: var(--eva-shadow);
+      position: relative;
+      isolation: isolate;
+    }
+
+    .app::before,
+    .app::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .app::before {
+      background:
+        linear-gradient(90deg, transparent 0 11%, rgba(255, 211, 79, 0.08) 11% 11.3%, transparent 11.3% 100%),
+        linear-gradient(180deg, rgba(255, 92, 77, 0.08), transparent 28%);
+      mix-blend-mode: screen;
+      opacity: 0.7;
+    }
+
+    .app::after {
+      background-image:
+        repeating-linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.02) 0 1px,
+          transparent 1px 84px
+        ),
+        repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.015) 0 1px,
+          transparent 1px 72px
+        );
+      opacity: 0.28;
+    }
+
+    .command-header,
+    .ws-row,
+    .hero-stage,
+    .chat-dock {
+      position: relative;
+      z-index: 1;
+    }
+
+    .command-header {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.2fr) minmax(360px, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 24px 28px 18px;
+      border-bottom: 1px solid var(--eva-line);
+      background:
+        linear-gradient(180deg, rgba(255, 125, 58, 0.08), transparent 70%),
+        rgba(13, 7, 9, 0.85);
+    }
+
+    .brand {
+      display: grid;
+      gap: 6px;
+    }
+
+    .brand-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      padding: 5px 10px;
+      color: var(--eva-yellow);
+      border: 1px solid rgba(255, 211, 79, 0.28);
+      background: rgba(56, 16, 11, 0.62);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 10px;
+      font-weight: 700;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%, 6px 50%);
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: clamp(20px, 1.55vw, 28px);
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .brand-subtitle {
+      color: var(--eva-text-dim);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .status-cluster {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 10px 14px;
+      border: 1px solid var(--eva-line);
+      background: rgba(15, 7, 10, 0.82);
+      color: var(--eva-text);
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 10px 50%);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .status-pill strong {
+      color: var(--eva-yellow);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .status-pill span {
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .status-pill.is-live span {
+      color: #8fffa5;
+    }
+
+    .status-pill.is-wait span {
+      color: #ffd27a;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      padding: 4px;
+      border: 1px solid var(--eva-line);
+      background: rgba(11, 5, 7, 0.86);
+      border-radius: 999px;
+      gap: 4px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      color: var(--eva-text);
+      border: 1px solid var(--eva-line);
+      background: rgba(18, 10, 13, 0.86);
+      transition:
+        transform 140ms ease,
+        background-color 140ms ease,
+        border-color 140ms ease,
+        box-shadow 140ms ease;
+    }
+
+    button:hover {
+      border-color: var(--eva-line-strong);
+      background: rgba(50, 18, 17, 0.96);
+      box-shadow: 0 0 22px rgba(255, 125, 58, 0.12);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .lang-btn,
+    .header-btn,
+    .ws-button,
+    .dock-btn,
+    .timer-btn {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .lang-btn {
+      min-width: 68px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--eva-text-dim);
+    }
+
+    .lang-btn.is-active {
+      background: linear-gradient(180deg, rgba(255, 94, 70, 0.9), rgba(195, 49, 30, 0.92));
+      border-color: rgba(255, 197, 126, 0.45);
+      color: white;
+      box-shadow: 0 0 18px rgba(255, 94, 70, 0.22);
+    }
+
+    .header-btn,
+    .ws-button,
+    .timer-btn.is-primary {
+      background: linear-gradient(180deg, rgba(255, 113, 50, 0.95), rgba(193, 41, 23, 0.94));
+      border-color: rgba(255, 205, 120, 0.4);
+    }
+
+    .ws-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 16px 28px 18px;
+      border-bottom: 1px solid var(--eva-line);
+      background: rgba(12, 7, 10, 0.72);
+    }
+
+    input,
+    select {
+      width: 100%;
+      border-radius: 14px;
+      min-height: 46px;
+      border: 1px solid var(--eva-line);
+      background: rgba(16, 8, 10, 0.78);
+      color: var(--eva-text);
+      padding: 0 14px;
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(255, 208, 107, 0.54);
+      box-shadow:
+        0 0 0 1px rgba(255, 208, 107, 0.24),
+        0 0 18px rgba(255, 126, 67, 0.18);
+    }
+
+    #settingsDefaultChatDockStateLabel,
+    #settingsDefaultChatDockState,
+    #settingsDefaultChatDockStateHelp {
+      display: none;
+    }
+
+    .hero-stage {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 312px;
+      gap: 18px;
+      padding: 20px 28px 18px;
+      border-bottom: 1px solid var(--eva-line);
+    }
+
+    .hero-panel,
+    .utility-panel,
+    .chat-shell,
+    .settings-drawer,
+    .settings-card {
+      background: var(--eva-panel);
+      border: 1px solid var(--eva-line);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+    }
+
+    .hero-panel {
+      min-height: 0;
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 22px));
+      background:
+        linear-gradient(180deg, rgba(255, 152, 77, 0.06), transparent 32%),
+        radial-gradient(640px 420px at 48% 20%, rgba(211, 62, 37, 0.18), transparent 60%),
+        radial-gradient(460px 300px at 50% 44%, rgba(255, 190, 80, 0.08), transparent 62%),
+        rgba(11, 6, 8, 0.9);
+    }
+
+    .hero-panel::before,
+    .utility-panel::before,
+    .chat-shell::before,
+    .settings-drawer::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, transparent 0 18px, rgba(255, 217, 111, 0.08) 18px 19px, transparent 19px),
+        linear-gradient(180deg, rgba(255, 108, 57, 0.1), transparent 25%);
+      opacity: 0.58;
+    }
+
+    .hero-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px 10px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255, 195, 112, 0.28);
+      border-radius: 999px;
+      background: rgba(16, 8, 11, 0.78);
+      color: var(--eva-text-dim);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero-index {
+      color: var(--eva-yellow);
+      font-weight: 800;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+    }
+
+    .live2d-wrap {
+      position: absolute;
+      inset: 58px 14px 14px;
+      border: 1px solid rgba(255, 160, 82, 0.16);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 108, 57, 0.04), transparent 32%),
+        radial-gradient(520px 320px at 50% 32%, rgba(255, 139, 69, 0.12), transparent 60%),
+        rgba(4, 2, 3, 0.52);
+      overflow: hidden;
+    }
+
+    .live2d-wrap::before,
+    .live2d-wrap::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      border: 1px solid rgba(255, 211, 79, 0.14);
+    }
+
+    .live2d-wrap::before {
+      inset: 14px;
+      clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+    }
+
+    .live2d-wrap::after {
+      width: 92px;
+      height: 92px;
+      right: 14px;
+      top: 14px;
+      border-radius: 50%;
+      border-color: rgba(255, 211, 79, 0.08);
+    }
+
+    .live2d-tip {
+      position: absolute;
+      left: 20px;
+      top: 18px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 208, 107, 0.22);
+      background: rgba(15, 8, 10, 0.84);
+      color: var(--eva-text-dim);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .live2d-host {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .live2d-host canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      background: transparent !important;
+    }
+
+    .utility-panel {
+      min-height: 0;
+      border-radius: 24px;
+      clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .utility-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 18px 18px 12px;
+      border-bottom: 1px solid var(--eva-line);
+    }
+
+    .utility-tab {
+      min-height: 42px;
+      border-radius: 14px;
+      background: rgba(18, 10, 13, 0.75);
+      color: var(--eva-text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .utility-tab.is-active {
+      background: linear-gradient(180deg, rgba(255, 107, 57, 0.92), rgba(180, 39, 21, 0.92));
+      color: white;
+      border-color: rgba(255, 205, 120, 0.42);
+      box-shadow: 0 0 22px rgba(255, 107, 57, 0.18);
+    }
+
+    .utility-panels {
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .utility-view {
+      position: absolute;
+      inset: 0;
+      height: 100%;
+      padding: 14px;
+      overflow-x: hidden;
+      overflow-y: auto;
+      display: none;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 132, 52, 0.45) rgba(33, 12, 12, 0.35);
+    }
+
+    .utility-view.is-active {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .utility-view::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .utility-view::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(255, 116, 44, 0.88), rgba(255, 198, 72, 0.55));
+      border-radius: 999px;
+    }
+
+    .utility-view::-webkit-scrollbar-track {
+      background: rgba(27, 9, 10, 0.52);
+      border-radius: 999px;
+    }
+
+    .pet-card,
+    .status-card,
+    .tool-card,
+    .placeholder-card {
+      position: relative;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 159, 87, 0.14);
+      background:
+        linear-gradient(180deg, rgba(255, 113, 50, 0.06), transparent 34%),
+        rgba(10, 5, 7, 0.76);
+      overflow: hidden;
+    }
+
+    .pet-card::before,
+    .status-card::before,
+    .tool-card::before,
+    .placeholder-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(120deg, rgba(255, 191, 110, 0.08), transparent 32%);
+      opacity: 0.7;
+    }
+
+    .pet-card {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .pet-core {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffe798 0%, #ff9444 35%, #c73029 100%);
+      border: 2px solid rgba(255, 219, 138, 0.48);
+      box-shadow:
+        0 0 0 12px rgba(255, 120, 72, 0.08),
+        0 0 18px rgba(255, 107, 57, 0.22);
+    }
+
+    .pet-meta {
+      display: grid;
+      gap: 6px;
+    }
+
+    .pet-title {
+      color: var(--eva-text-dim);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .pet-state {
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .card-title {
+      padding: 14px 16px 10px;
+      color: var(--eva-yellow);
+      letter-spacing: 0.12em;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    .status-card-body,
+    .tool-card-body,
+    .placeholder-card-body {
+      padding: 0 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .status-item {
+      border: 1px solid rgba(255, 164, 92, 0.16);
+      border-radius: 16px;
+      padding: 12px 12px 10px;
+      background: rgba(18, 9, 11, 0.76);
+      display: grid;
+      gap: 8px;
+    }
+
+    .status-item.warning {
+      border-color: rgba(255, 211, 79, 0.38);
+      background: rgba(82, 23, 17, 0.56);
+      box-shadow: inset 0 0 0 1px rgba(255, 211, 79, 0.08);
+    }
+
+    .status-label {
+      color: var(--eva-text-dim);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .status-value {
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .status-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--eva-mute);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .meta-chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 177, 98, 0.18);
+      background: rgba(18, 10, 12, 0.62);
+    }
+
+    .timer-display {
+      font-size: 44px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-hint,
+    .placeholder-copy {
+      color: var(--eva-mute);
+      line-height: 1.7;
+      font-size: 13px;
+    }
+
+    .timer-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .timer-btn {
+      flex: 1 1 0;
+      min-width: 90px;
+    }
+
+    .chat-dock {
+      height: var(--chat-fixed);
+      min-height: var(--chat-fixed);
+      max-height: var(--chat-fixed);
+      border-top: 1px solid var(--eva-line);
+      background: rgba(9, 5, 7, 0.84);
+    }
+
+    .chat-shell {
+      height: calc(100% - 20px);
+      margin: 0 28px 20px;
+      border-radius: 24px 24px 0 0;
+      clip-path: polygon(0 18px, 18px 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 0 100%);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      position: relative;
+    }
+
+    .chat-header {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid rgba(255, 155, 82, 0.14);
+      background: rgba(15, 8, 10, 0.78);
+    }
+
+    .chat-handle {
+      width: 72px;
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255, 211, 79, 0.3), rgba(255, 94, 70, 0.72), rgba(255, 211, 79, 0.3));
+      justify-self: start;
+    }
+
+    .chat-header-copy {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .chat-header-copy strong {
+      font-size: 12px;
+      color: var(--eva-yellow);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .chat-header-copy span {
+      color: var(--eva-text-dim);
+      font-size: 12px;
+    }
+
+    .chat-controls {
+      display: none;
+    }
+
+    .dock-btn.is-active {
+      background: linear-gradient(180deg, rgba(255, 107, 57, 0.92), rgba(180, 39, 21, 0.92));
+      border-color: rgba(255, 205, 120, 0.42);
+      color: white;
+    }
+
+    .log {
+      min-height: 0;
+      overflow: auto;
+      padding: 16px 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bubble {
+      max-width: min(74ch, 86%);
+      padding: 13px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 166, 97, 0.18);
+      line-height: 1.65;
+      word-break: break-word;
+      white-space: pre-wrap;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .bubble.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(255, 116, 63, 0.2), rgba(159, 34, 29, 0.42));
+    }
+
+    .bubble.assistant {
+      align-self: flex-start;
+      background: linear-gradient(135deg, rgba(255, 216, 120, 0.12), rgba(171, 53, 31, 0.34));
+    }
+
+    .bubble.system {
+      align-self: center;
+      color: var(--eva-mute);
+      background: rgba(17, 9, 12, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 12px;
+    }
+
+    .settings-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(4, 1, 2, 0.66);
+      backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: 30;
+    }
+
+    .settings-drawer {
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: min(520px, 96vw);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      transform: translateX(102%);
+      transition: transform 220ms ease;
+      z-index: 31;
+      background:
+        linear-gradient(180deg, rgba(255, 113, 50, 0.07), transparent 26%),
+        rgba(12, 6, 8, 0.98);
+      border-left: 1px solid rgba(255, 170, 104, 0.16);
+      box-shadow: -24px 0 60px rgba(0, 0, 0, 0.46);
+      position: absolute;
+    }
+
+    .app.settings-open .settings-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .app.settings-open .settings-drawer {
+      transform: translateX(0);
+    }
+
+    .settings-header,
+    .settings-footer {
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255, 160, 82, 0.14);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .settings-footer {
+      border-bottom: 0;
+      border-top: 1px solid rgba(255, 160, 82, 0.14);
+      justify-content: flex-end;
+    }
+
+    .settings-title {
+      display: grid;
+      gap: 4px;
+    }
+
+    .settings-title strong {
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .settings-title span {
+      color: var(--eva-text-dim);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .settings-body {
+      min-height: 0;
+      overflow: auto;
+      padding: 18px 20px 24px;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .settings-card {
+      border-radius: 22px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .settings-card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--eva-yellow);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .settings-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--eva-text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .field small {
+      color: var(--eva-mute);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-row input[type="range"] {
+      min-height: auto;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      accent-color: var(--eva-orange);
+    }
+
+    .range-value {
+      min-width: 46px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+    }
+
+    .toggle-field {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 164, 92, 0.14);
+      background: rgba(18, 9, 12, 0.72);
+    }
+
+    .toggle-field input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin-top: 4px;
+      accent-color: var(--eva-orange);
+    }
+
+    .toggle-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    .toggle-copy strong {
+      font-size: 13px;
+    }
+
+    .toggle-copy span {
+      color: var(--eva-mute);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .app[data-state="idle"] .pet-core {
+      box-shadow:
+        0 0 0 12px rgba(255, 212, 89, 0.08),
+        0 0 20px rgba(255, 160, 82, 0.18);
+    }
+
+    .app[data-state="listening"] .pet-core {
+      animation: hudPulse 1.2s ease-in-out infinite;
+    }
+
+    .app[data-state="thinking"] .pet-core {
+      animation: thinkShift 0.9s linear infinite;
+    }
+
+    .app[data-state="speaking"] .pet-core {
+      animation: speakPulse 420ms ease-in-out infinite alternate;
+    }
+
+    .log .bubble {
+      display: flex;
+    }
+
+    @keyframes hudPulse {
+      0%,
+      100% {
+        transform: scale(1);
+        box-shadow:
+          0 0 0 12px rgba(255, 141, 77, 0.08),
+          0 0 0 0 rgba(255, 211, 79, 0.26);
+      }
+      50% {
+        transform: scale(1.06);
+        box-shadow:
+          0 0 0 16px rgba(255, 141, 77, 0.04),
+          0 0 0 14px rgba(255, 211, 79, 0);
+      }
+    }
+
+    @keyframes thinkShift {
+      0% {
+        transform: translateX(0) scale(1);
+      }
+      25% {
+        transform: translateX(2px) scale(0.97);
+      }
+      50% {
+        transform: translateX(0) scale(1);
+      }
+      75% {
+        transform: translateX(-2px) scale(0.97);
+      }
+      100% {
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    @keyframes speakPulse {
+      from {
+        transform: scale(0.94);
+      }
+      to {
+        transform: scale(1.08);
+      }
+    }
+
+    @media (max-width: 1240px) {
+      .app {
+        width: min(1160px, 97vw);
+      }
+
+      .hero-stage {
+        grid-template-columns: minmax(0, 1fr) 292px;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .command-header {
+        grid-template-columns: 1fr;
+      }
+
+      .status-cluster,
+      .header-actions {
+        justify-content: flex-start;
+      }
+
+      .hero-stage {
+        grid-template-columns: 1fr;
+      }
+
+      .utility-panel {
+        min-height: 340px;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        height: min(960px, 96vh);
+      }
+
+      .ws-row {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-header {
+        grid-template-columns: 1fr;
+      }
+
+    }
+
+    /* Legacy blue dashboard override */
+    :root {
+      --eva-panel: rgba(17, 27, 50, 0.95);
+      --eva-panel-soft: rgba(20, 32, 59, 0.9);
+      --eva-panel-strong: rgba(11, 18, 36, 0.98);
+      --eva-line: rgba(120, 152, 212, 0.18);
+      --eva-line-strong: rgba(149, 196, 255, 0.32);
+      --eva-red: #356cff;
+      --eva-red-strong: #5d91ff;
+      --eva-orange: #3c76ff;
+      --eva-yellow: #8ecfff;
+      --eva-cream: #eef6ff;
+      --eva-mute: #a6b9da;
+      --eva-text: #edf5ff;
+      --eva-text-dim: #c6d4ea;
+      --eva-glow: rgba(88, 139, 255, 0.18);
+      --eva-shadow: 0 24px 72px rgba(0, 0, 0, 0.34);
+      --chat-fixed: 236px;
+    }
+
+    body {
+      background:
+        radial-gradient(960px 520px at 10% 0%, rgba(68, 118, 218, 0.22), transparent 56%),
+        radial-gradient(820px 520px at 100% 100%, rgba(70, 119, 216, 0.16), transparent 58%),
+        linear-gradient(180deg, #15305c 0%, #11274d 22%, #0a1730 100%);
+    }
+
+    .app {
+      width: min(1320px, 96vw);
+      height: min(900px, 95vh);
+      background:
+        linear-gradient(180deg, rgba(109, 170, 255, 0.08), transparent 18%),
+        linear-gradient(180deg, rgba(13, 22, 40, 0.96), rgba(11, 19, 36, 0.98));
+      border: 1px solid rgba(122, 156, 217, 0.16);
+      border-radius: 28px;
+    }
+
+    .app::before,
+    .app::after {
+      display: none;
+    }
+
+    .command-header {
+      grid-template-columns: minmax(300px, 1.3fr) minmax(320px, 1fr) auto;
+      padding: 22px 28px 16px;
+      background: linear-gradient(180deg, rgba(32, 61, 114, 0.28), rgba(11, 18, 33, 0.1));
+      border-bottom: 1px solid rgba(122, 156, 217, 0.14);
+    }
+
+    .brand-kicker {
+      background: rgba(28, 50, 92, 0.48);
+      color: #97d6ff;
+      border: 1px solid rgba(122, 156, 217, 0.16);
+      clip-path: none;
+      border-radius: 999px;
+      letter-spacing: 0.12em;
+    }
+
+    .brand-title {
+      font-size: clamp(18px, 1.4vw, 24px);
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+
+    .brand-subtitle {
+      color: #c0cde0;
+      letter-spacing: 0.08em;
+    }
+
+    .status-pill {
+      min-height: 42px;
+      border-radius: 999px;
+      clip-path: none;
+      background: rgba(11, 19, 36, 0.84);
+      border: 1px solid rgba(122, 156, 217, 0.16);
+    }
+
+    .status-pill strong {
+      color: #b6dcff;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+    }
+
+    .lang-switch {
+      background: rgba(10, 18, 34, 0.88);
+      border: 1px solid rgba(122, 156, 217, 0.14);
+    }
+
+    .lang-btn.is-active,
+    .header-btn,
+    .ws-button,
+    .timer-btn.is-primary {
+      background: linear-gradient(180deg, #3e78ff, #2958d1);
+      border-color: rgba(173, 211, 255, 0.24);
+      box-shadow: 0 0 16px rgba(82, 137, 255, 0.15);
+    }
+
+    .ws-row {
+      background: rgba(10, 17, 31, 0.36);
+      border-bottom: 1px solid rgba(122, 156, 217, 0.12);
+    }
+
+    input,
+    select {
+      background: rgba(10, 18, 34, 0.84);
+      border: 1px solid rgba(122, 156, 217, 0.14);
+    }
+
+    .hero-stage {
+      grid-template-columns: minmax(0, 1fr) 318px;
+      gap: 16px;
+      padding: 16px 28px;
+      border-bottom: 1px solid rgba(122, 156, 217, 0.12);
+    }
+
+    .hero-panel {
+      border-radius: 24px;
+      clip-path: none;
+      border: 1px solid rgba(122, 156, 217, 0.14);
+      background:
+        radial-gradient(460px 280px at 50% 28%, rgba(93, 145, 255, 0.18), transparent 58%),
+        linear-gradient(180deg, rgba(36, 60, 108, 0.2), transparent 28%),
+        rgba(10, 17, 32, 0.98);
+    }
+
+    .hero-panel::before,
+    .utility-panel::before,
+    .chat-shell::before,
+    .settings-drawer::before {
+      background: none;
+    }
+
+    .hero-badge,
+    .live2d-tip {
+      background: rgba(13, 22, 41, 0.82);
+      border: 1px solid rgba(122, 156, 217, 0.16);
+      color: #d7e6ff;
+      letter-spacing: 0.03em;
+      text-transform: none;
+    }
+
+    .hero-index {
+      color: #89d5ff;
+      letter-spacing: 0.08em;
+    }
+
+    .live2d-wrap {
+      inset: 56px 14px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(122, 156, 217, 0.14);
+      background:
+        radial-gradient(400px 240px at 50% 32%, rgba(94, 145, 255, 0.16), transparent 58%),
+        linear-gradient(180deg, rgba(23, 40, 74, 0.18), transparent 28%),
+        rgba(5, 8, 16, 0.82);
+    }
+
+    .live2d-wrap::before {
+      inset: 18px;
+      clip-path: none;
+      border-radius: 18px;
+      border-color: rgba(122, 156, 217, 0.12);
+    }
+
+    .live2d-wrap::after {
+      display: none;
+    }
+
+    .utility-panel {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      clip-path: none;
+      grid-template-rows: minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .utility-tabs {
+      display: none;
+    }
+
+    .utility-panels {
+      position: static;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(93, 142, 255, 0.55) transparent;
+    }
+
+    .utility-view {
+      position: static;
+      inset: auto;
+      height: auto;
+      padding: 0;
+      display: flex !important;
+      flex-direction: column;
+      gap: 14px;
+      overflow: visible;
+    }
+
+    #utilityPanelTools {
+      display: none !important;
+    }
+
+    .pet-card,
+    .status-card,
+    .tool-card,
+    .placeholder-card {
+      background: rgba(13, 22, 40, 0.94);
+      border: 1px solid rgba(122, 156, 217, 0.14);
+      border-radius: 22px;
+    }
+
+    .pet-card::before,
+    .status-card::before,
+    .tool-card::before,
+    .placeholder-card::before {
+      background: none;
+    }
+
+    .pet-core {
+      background: radial-gradient(circle at 30% 30%, #8dd8ff 0%, #4b93ff 42%, #2a53ca 100%);
+      border: 2px solid rgba(189, 224, 255, 0.3);
+      box-shadow:
+        0 0 0 12px rgba(69, 122, 255, 0.08),
+        0 0 18px rgba(76, 128, 255, 0.15);
+    }
+
+    .pet-title,
+    .status-label {
+      color: #cfe0f6;
+      text-transform: none;
+      letter-spacing: 0.04em;
+    }
+
+    .pet-state {
+      font-size: 26px;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .card-title {
+      color: #e6f1ff;
+      text-transform: none;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      padding: 16px 18px 10px;
+    }
+
+    .status-item {
+      background: rgba(17, 29, 54, 0.9);
+      border: 1px solid rgba(122, 156, 217, 0.12);
+    }
+
+    .status-value {
+      font-size: 28px;
+    }
+
+    .meta-chip {
+      background: rgba(14, 24, 45, 0.82);
+      border: 1px solid rgba(122, 156, 217, 0.12);
+    }
+
+    .chat-dock {
+      height: var(--chat-fixed);
+      min-height: var(--chat-fixed);
+      max-height: var(--chat-fixed);
+      border-top: none;
+      background: transparent;
+    }
+
+    .chat-shell {
+      margin: 0 28px 20px;
+      height: calc(100% - 20px);
+      border-radius: 20px;
+      clip-path: none;
+      background: rgba(13, 22, 40, 0.96);
+      border: 1px solid rgba(122, 156, 217, 0.14);
+    }
+
+    .chat-header {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      background: transparent;
+      border-bottom: 1px solid rgba(122, 156, 217, 0.12);
+    }
+
+    .chat-handle,
+    .chat-controls {
+      display: none;
+    }
+
+    .chat-header-copy strong {
+      color: #edf4ff;
+      font-size: 15px;
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+
+    .chat-header-copy span {
+      color: #b8c9e1;
+      font-size: 12px;
+    }
+
+    .bubble {
+      border: 1px solid rgba(122, 156, 217, 0.12);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+    }
+
+    .bubble.user {
+      background: linear-gradient(135deg, rgba(64, 118, 255, 0.28), rgba(26, 61, 140, 0.38));
+    }
+
+    .bubble.assistant {
+      background: linear-gradient(135deg, rgba(88, 172, 255, 0.18), rgba(31, 74, 151, 0.34));
+    }
+
+    .bubble.system {
+      background: rgba(12, 21, 39, 0.92);
+      text-transform: none;
+      letter-spacing: 0.02em;
+      font-size: 12px;
+    }
+
+    .settings-drawer,
+    .settings-card,
+    .toggle-field {
+      background: rgba(13, 22, 40, 0.97);
+      border-color: rgba(122, 156, 217, 0.14);
+    }
+
+    #settingsDefaultChatDockStateLabel,
+    #settingsDefaultChatDockState,
+    #settingsDefaultChatDockStateHelp,
+    #settingsDefaultUtilityTabLabel,
+    #settingsDefaultUtilityTab,
+    #settingsDefaultUtilityTabHelp {
+      display: none;
+    }
+
+    @media (max-width: 1240px) {
+      .app {
+        width: min(1180px, 97vw);
+      }
+
+      .hero-stage {
+        grid-template-columns: minmax(0, 1fr) 300px;
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .hero-stage {
+        grid-template-columns: 1fr;
+      }
+
+      .utility-panel {
+        min-height: 320px;
+      }
+    }
+  </style>
+  <script src="./Core/live2dcubismcore.js"></script>
+  <script src="./src/main.ts" type="module"></script>
+</head>
+<body>
+  <div id="app" class="app" data-state="unknown" data-chat-dock="peek">
+    <header class="command-header">
+      <div class="brand">
+        <div class="brand-kicker">
+          <span id="headerTag">ASUKA-TYPE // PILOT HUD</span>
+        </div>
+        <h1 id="title" class="brand-title">NERV / 小闪桌宠终端</h1>
+        <div id="brandSubtitle" class="brand-subtitle">Desk Companion Control Deck</div>
+      </div>
+
+      <div class="status-cluster">
+        <div id="conn" class="status-pill is-wait">
+          <strong id="connLabel">LINK</strong>
+          <span>连接中</span>
+        </div>
+        <div id="state" class="status-pill">
+          <strong id="stateLabel">STATE</strong>
+          <span>状态 / 未知</span>
+        </div>
+        <div id="mode" class="status-pill">
+          <strong id="modeLabel">MODE</strong>
+          <span>模式 / 常规</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button id="langZhBtn" class="lang-btn is-active" type="button">中文</button>
+          <button id="langEnBtn" class="lang-btn" type="button">EN</button>
+        </div>
+        <button id="settingsBtn" class="header-btn" type="button">角色设置</button>
+      </div>
+    </header>
+
+    <section class="ws-row">
+      <input id="wsUrl" aria-label="WebSocket address" placeholder="输入 WebSocket 地址">
+      <button id="saveBtn" class="ws-button" type="button">保存并重连</button>
+    </section>
+
+    <main class="hero-stage">
+      <section class="hero-panel">
+        <div class="hero-header">
+          <div id="live2dTip" class="hero-badge live2d-tip">
+            <span class="hero-index">UNIT-02</span>
+            <span>模型 Hiyori // 支持分区互动反馈</span>
+          </div>
+        </div>
+        <div id="live2dWrap" class="live2d-wrap">
+          <div id="live2dHost" class="live2d-host"></div>
+        </div>
+      </section>
+
+      <aside class="utility-panel">
+        <div class="utility-tabs">
+          <button id="utilityTabStatus" class="utility-tab is-active" type="button">STATUS</button>
+          <button id="utilityTabFocus" class="utility-tab" type="button">FOCUS</button>
+          <button id="utilityTabTools" class="utility-tab" type="button">TOOLS</button>
+        </div>
+
+        <div class="utility-panels">
+          <section id="utilityPanelStatus" class="utility-view is-active">
+            <div class="pet-card">
+              <div class="pet-core"></div>
+              <div class="pet-meta">
+                <div id="petTitle" class="pet-title">同步状态</div>
+                <div id="petState" class="pet-state">UNKNOWN</div>
+              </div>
+            </div>
+
+            <section id="systemCard" class="status-card">
+              <div id="systemCardTitle" class="card-title">System Status</div>
+              <div class="status-card-body">
+                <div class="status-grid">
+                  <div id="cpuStatus" class="status-item">
+                    <span id="cpuLabel" class="status-label">CPU</span>
+                    <span id="cpuValue" class="status-value">--%</span>
+                  </div>
+                  <div id="memoryStatus" class="status-item">
+                    <span id="memoryLabel" class="status-label">Memory</span>
+                    <span id="memoryValue" class="status-value">--%</span>
+                  </div>
+                  <div id="networkStatus" class="status-item">
+                    <span id="networkLabel" class="status-label">Network</span>
+                    <span id="networkValue" class="status-value">--</span>
+                  </div>
+                  <div id="batteryStatus" class="status-item">
+                    <span id="batteryLabel" class="status-label">Battery</span>
+                    <span id="batteryValue" class="status-value">--</span>
+                  </div>
+                </div>
+                <div class="status-meta">
+                  <span id="notificationStyleLabel" class="meta-chip">提醒风格 / 陪伴优先</span>
+                  <span id="windowFocusLabel" class="meta-chip">窗口 / 常规</span>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section id="utilityPanelFocus" class="utility-view">
+            <section id="pomodoroCard" class="tool-card">
+              <div id="pomodoroTitle" class="card-title">Focus Timer</div>
+              <div class="tool-card-body">
+                <div id="pomodoroValue" class="timer-display">25:00</div>
+                <div id="pomodoroHint" class="timer-hint">
+                  准备开始一轮专注。开始后，结束提醒会跟随当前提醒风格变化。
+                </div>
+                <div class="timer-actions">
+                  <button id="pomodoroStartBtn" class="timer-btn is-primary" type="button">开始</button>
+                  <button id="pomodoroPauseBtn" class="timer-btn" type="button">暂停</button>
+                  <button id="pomodoroResetBtn" class="timer-btn" type="button">重置</button>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section id="utilityPanelTools" class="utility-view">
+            <section class="placeholder-card">
+              <div id="toolsPlaceholderTitle" class="card-title">Tools Bay Reserved</div>
+              <div class="placeholder-card-body">
+                <div id="toolsPlaceholderBody" class="placeholder-copy">
+                  后续的小工具会收纳在这里，不会继续把主舞台挤满。
+                </div>
+              </div>
+            </section>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <section id="chatDock" class="chat-dock">
+      <div class="chat-shell">
+        <div class="chat-header">
+          <div id="chatDockHandle" class="chat-handle"></div>
+          <div class="chat-header-copy">
+            <strong id="chatDockTitle">对话日志</strong>
+            <span id="chatDockSubtitle">对话、提醒与陪伴提示会收纳在这里</span>
+          </div>
+          <div class="chat-controls">
+            <button id="chatCollapseBtn" class="dock-btn" type="button">收起</button>
+            <button id="chatPeekBtn" class="dock-btn is-active" type="button">半展开</button>
+            <button id="chatExpandBtn" class="dock-btn" type="button">大展开</button>
+          </div>
+        </div>
+        <div id="log" class="log"></div>
+      </div>
+    </section>
+
+    <div id="settingsBackdrop" class="settings-backdrop"></div>
+
+    <aside id="settingsDrawer" class="settings-drawer" aria-hidden="true">
+      <div class="settings-header">
+        <div class="settings-title">
+          <strong id="settingsTitle">角色与工作台设置</strong>
+          <span id="settingsTitleSub">CHARACTER // WORKSPACE</span>
+        </div>
+        <button id="settingsCloseBtn" class="header-btn" type="button">关闭</button>
+      </div>
+
+      <div class="settings-body">
+        <section class="settings-card">
+          <div id="groupProfileTitle" class="settings-card-title">Profile</div>
+          <div class="settings-grid">
+            <div class="field">
+              <label id="settingsAssistantNameLabel" for="settingsAssistantName">桌宠名字</label>
+              <input id="settingsAssistantName" type="text" maxlength="24">
+              <small id="settingsAssistantNameHelp">用于标题、日志和角色显示名称。</small>
+            </div>
+
+            <div class="field">
+              <label id="settingsUserNameLabel" for="settingsUserName">用户称呼</label>
+              <input id="settingsUserName" type="text" maxlength="24">
+              <small id="settingsUserNameHelp">用于对话气泡中的用户称呼。</small>
+            </div>
+
+            <div class="field">
+              <label id="settingsLanguageLabel" for="settingsLanguage">界面语言</label>
+              <select id="settingsLanguage">
+                <option value="zh-CN">中文</option>
+                <option value="en">English</option>
+              </select>
+              <small id="settingsLanguageHelp">用于系统界面、状态卡、设置面板和工具标签。</small>
+            </div>
+
+            <div class="field">
+              <label id="settingsDisplayLanguageModeLabel" for="settingsDisplayLanguageMode">英文展示策略</label>
+              <select id="settingsDisplayLanguageMode">
+                <option value="ui-only-bilingual">仅界面双语</option>
+                <option value="prefer-english-demo">偏英文答辩演示</option>
+              </select>
+              <small id="settingsDisplayLanguageModeHelp">“仅界面双语”只切换前端界面；“偏英文答辩演示”会在英文模式下提示后端回复仍受官方服务语言控制。</small>
+            </div>
+
+            <div class="field">
+              <label id="settingsWsUrlLabel" for="settingsWsUrl">WebSocket 地址</label>
+              <input id="settingsWsUrl" type="text">
+              <small id="settingsWsUrlHelp">保存后会同步到顶部地址栏，并可立即重连。</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-card">
+          <div id="groupBehaviorTitle" class="settings-card-title">Behavior</div>
+          <div class="settings-grid">
+            <div class="field">
+              <label id="settingsPersonaStyleLabel" for="settingsPersonaStyle">角色风格</label>
+              <select id="settingsPersonaStyle">
+                <option value="playful">活泼</option>
+                <option value="gentle">温柔</option>
+                <option value="calm">安静</option>
+                <option value="energetic">元气</option>
+              </select>
+              <small id="settingsPersonaStyleHelp">会影响陪伴文案、动作节奏和互动态度。</small>
+            </div>
+
+            <div class="field">
+              <label id="settingsSpeakingEnergyLabel" for="settingsSpeakingEnergy">说话活跃度</label>
+              <div class="range-row">
+                <input id="settingsSpeakingEnergy" type="range" min="0.2" max="1" step="0.01">
+                <span id="settingsSpeakingEnergyValue" class="range-value">0.82</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label id="settingsIdleEnergyLabel" for="settingsIdleEnergy">待机活跃度</label>
+              <div class="range-row">
+                <input id="settingsIdleEnergy" type="range" min="0.1" max="1" step="0.01">
+                <span id="settingsIdleEnergyValue" class="range-value">0.58</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label id="settingsAccentEnergyLabel" for="settingsAccentEnergy">强调反馈强度</label>
+              <div class="range-row">
+                <input id="settingsAccentEnergy" type="range" min="0.1" max="1" step="0.01">
+                <span id="settingsAccentEnergyValue" class="range-value">0.78</span>
+              </div>
+            </div>
+
+            <label class="toggle-field" for="settingsAutoGreeting">
+              <input id="settingsAutoGreeting" type="checkbox">
+              <span class="toggle-copy">
+                <strong id="settingsAutoGreetingText">自动问候</strong>
+                <span id="settingsAutoGreetingHelp">启动后或重新聚焦时，由桌宠主动打招呼。</span>
+              </span>
+            </label>
+
+            <label class="toggle-field" for="settingsLowDisturbMode">
+              <input id="settingsLowDisturbMode" type="checkbox">
+              <span class="toggle-copy">
+                <strong id="settingsLowDisturbModeText">低打扰模式</strong>
+                <span id="settingsLowDisturbModeHelp">窗口失焦或切到后台时，自动降低动作与提示频率。</span>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-card">
+          <div id="groupNotificationsTitle" class="settings-card-title">Notifications</div>
+          <div class="settings-grid">
+            <div class="field">
+              <label id="settingsNotificationStyleLabel" for="settingsNotificationStyle">提醒风格</label>
+              <select id="settingsNotificationStyle">
+                <option value="companion">陪伴优先</option>
+                <option value="productivity">效率优先</option>
+              </select>
+              <small id="settingsNotificationStyleHelp">决定系统提醒与番茄钟完成时的语气。</small>
+            </div>
+
+            <label class="toggle-field" for="settingsEnableSystemCard">
+              <input id="settingsEnableSystemCard" type="checkbox">
+              <span class="toggle-copy">
+                <strong id="settingsEnableSystemCardText">显示系统状态卡</strong>
+                <span id="settingsEnableSystemCardHelp">显示 CPU、内存、网络、电池与提醒风格概况。</span>
+              </span>
+            </label>
+
+            <label class="toggle-field" for="settingsEnableSedentaryReminder">
+              <input id="settingsEnableSedentaryReminder" type="checkbox">
+              <span class="toggle-copy">
+                <strong id="settingsEnableSedentaryReminderText">久坐提醒</strong>
+                <span id="settingsEnableSedentaryReminderHelp">长时间无操作后，给出更克制的陪伴提示。</span>
+              </span>
+            </label>
+
+            <label class="toggle-field" for="settingsEnableNetworkReminder">
+              <input id="settingsEnableNetworkReminder" type="checkbox">
+              <span class="toggle-copy">
+                <strong id="settingsEnableNetworkReminderText">网络状态提醒</strong>
+                <span id="settingsEnableNetworkReminderHelp">网络断开或恢复时，更新状态卡并推送气泡。</span>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="settings-card">
+          <div id="groupWorkspaceTitle" class="settings-card-title">Workspace</div>
+          <div class="settings-grid">
+            <label class="toggle-field" for="settingsEnablePomodoro">
+              <input id="settingsEnablePomodoro" type="checkbox">
+              <span class="toggle-copy">
+                <strong id="settingsEnablePomodoroText">启用番茄钟</strong>
+                <span id="settingsEnablePomodoroHelp">在右侧专注页保留最小专注计时器。</span>
+              </span>
+            </label>
+
+            <div class="field">
+              <label id="settingsPomodoroMinutesLabel" for="settingsPomodoroMinutes">番茄时长（分钟）</label>
+              <div class="range-row">
+                <input id="settingsPomodoroMinutes" type="range" min="5" max="90" step="5">
+                <span id="settingsPomodoroMinutesValue" class="range-value">25</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label id="settingsDefaultChatDockStateLabel" for="settingsDefaultChatDockState">默认聊天区状态</label>
+              <select id="settingsDefaultChatDockState">
+                <option value="collapsed">收起</option>
+                <option value="peek">半展开</option>
+                <option value="expanded">大展开</option>
+              </select>
+              <small id="settingsDefaultChatDockStateHelp">控制底部对话 dock 启动时的展开程度。</small>
+            </div>
+
+            <div class="field">
+              <label id="settingsDefaultUtilityTabLabel" for="settingsDefaultUtilityTab">默认工具标签</label>
+              <select id="settingsDefaultUtilityTab">
+                <option value="status">状态</option>
+                <option value="focus">专注</option>
+                <option value="tools">工具</option>
+              </select>
+              <small id="settingsDefaultUtilityTabHelp">启动后右侧工具栏默认打开的页签。</small>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="settings-footer">
+        <button id="settingsResetBtn" class="timer-btn" type="button">恢复默认</button>
+        <button id="settingsSaveBtn" class="timer-btn is-primary" type="button">保存设置</button>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>
