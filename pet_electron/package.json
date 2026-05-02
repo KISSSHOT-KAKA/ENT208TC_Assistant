@@ -4,6 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
+    "build:cubism_app": "npm --prefix cubism_app run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron ."
   },
